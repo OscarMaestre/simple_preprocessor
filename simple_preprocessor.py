@@ -2,6 +2,7 @@
 
 import sys
 import re
+import os
 
 
 MACRO_START="<<<"
@@ -10,7 +11,17 @@ class SimplePreprocessor(object):
     def __init__(self):
         self.symbols_table=dict()
         self.re_define=re.compile("define\s+(?P<id>[a-zA-Z0-9_]+)\s+(?P<value>[a-zA-Z0-9 ]+)")
+        self.re_include=re.compile("include\s+(?P<filename>(\S+))")
         
+    def get_lines(self, filename):
+        with open(filename, "r") as f:
+            lines=f.readlines()
+            lines_without_end_of_line=[]
+            for l in lines:
+                lines_without_end_of_line.append(l.strip(os.linesep))
+            line=os.linesep.join(lines_without_end_of_line)
+            return line + os.linesep
+        return "Unable to read " + filename
     
     def run_macro(self, line, pos_macro_start, pos_macro_end):
         #print(line, self.re_define.match(line), end="")
@@ -22,6 +33,11 @@ class SimplePreprocessor(object):
             #print (id, value)
             self.symbols_table[id]=value
             return ""
+        include_results=self.re_include.search(line[pos_macro_start:pos_macro_end])
+        if include_results!=None:
+            filename=include_results.group("filename")
+            line=self.get_lines(filename)
+            return line
         return line
     
     
@@ -42,7 +58,7 @@ class SimplePreprocessor(object):
         with open(file_path, "r") as f:
             for line in f.readlines():
                 processed_line=self.parse_line(line)
-                print (line, end="")
+                print (processed_line, end="")
         
         
 if __name__ == '__main__':
